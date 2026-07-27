@@ -25,12 +25,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ),
   title: {
     default: "Machh Bazar — Fresh Fish, Fully Traceable",
     template: "%s | Machh Bazar",
   },
-  description: "Shop fresh fish with proof of source, catch time, and exact weight.",
+  description:
+    "Shop fresh fish with proof of source, catch time, and exact weight.",
 };
 
 export default function RootLayout({
@@ -46,20 +49,18 @@ export default function RootLayout({
     >
       <head />
       <body className="font-sans antialiased" suppressHydrationWarning>
-<ThemeProvider
-  attribute="class"
-  defaultTheme="system"
-  enableSystem
-  disableTransitionOnChange
->
-        
-<TooltipProvider>
-<QueryProviders>{children}</QueryProviders>
-</TooltipProvider>
-        <Toaster theme="system" position="top-right" richColors />
-      
-</ThemeProvider>
-</body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider>
+            <QueryProviders>{children}</QueryProviders>
+          </TooltipProvider>
+          <Toaster theme="system" position="top-right" richColors />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

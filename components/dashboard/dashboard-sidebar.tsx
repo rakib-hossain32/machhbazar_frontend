@@ -239,7 +239,15 @@ export function DashboardSidebar({ menu = [], user }: DashboardSidebarProps) {
             <DropdownMenuGroup>
               <DropdownMenuLabel>Account</DropdownMenuLabel>
               <DropdownMenuItem>
-                                <Link href="/dashboard/my-profile">Profile</Link>
+                <Link
+                  href={
+                    user?.role === "USER"
+                      ? "/my-profile"
+                      : "/dashboard/my-profile"
+                  }
+                >
+                  Profile
+                </Link>
                 
               </DropdownMenuItem>
             </DropdownMenuGroup>

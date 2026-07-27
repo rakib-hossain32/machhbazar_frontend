@@ -1,11 +1,15 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLogoutMutation } from "@/features/auth/queries/auth.mutations";
 import { useMeQuery } from "@/features/auth/queries/auth.querie";
+import { Loader2, LogOut } from "lucide-react";
 import ProfileForm from "./profile-form";
 
 export default function MyProfile() {
   const { data: user, isLoading } = useMeQuery();
+  const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
 
   if (isLoading || !user) {
     return (
@@ -142,6 +146,22 @@ export default function MyProfile() {
               information up to date for better security and communication.
             </p>
           </div>
+
+          <Button
+            type="button"
+            variant="destructive"
+            size="lg"
+            className="w-full"
+            disabled={isLoggingOut}
+            onClick={() => logout()}
+          >
+            {isLoggingOut ? (
+              <Loader2 data-icon="inline-start" className="animate-spin" />
+            ) : (
+              <LogOut data-icon="inline-start" />
+            )}
+            {isLoggingOut ? "Logging out" : "Log out"}
+          </Button>
         </div>
       </div>
     </div>

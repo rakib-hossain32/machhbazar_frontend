@@ -1,19 +1,23 @@
 "use client";
 
 import { ModeToggle } from "@/components/mode-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import UserProfile from "@/features/auth/components/user-profile-menu";
-import { Fish, Heart, Menu, ShoppingBag } from "lucide-react";
+import { useMeQuery } from "@/features/auth/queries/auth.querie";
+import { cn } from "@/lib/utils";
+import {
+  BookOpen,
+  Fish,
+  Heart,
+  House,
+  Info,
+  LogIn,
+  ShoppingBag,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -24,11 +28,91 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { data: user, isLoading } = useMeQuery();
+  const [scrollDirection, setScrollDirection] = useState<
+    "idle" | "up" | "down"
+  >("idle");
+  const isCustomer = user?.role === "USER";
+  const isTopHidden = scrollDirection === "down";
+  const isBottomHidden = scrollDirection === "up";
   const isActive = (href: string) =>
     href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const mobileNavIcons = [House, Fish, BookOpen, Info] as const;
+  const mobileNavLinks = [
+    ...navLinks.map((link, index) => ({
+      ...link,
+      mobileLabel: index === 1 ? "Catch" : link.name,
+      icon: mobileNavIcons[index],
+    })),
+    {
+      name: "Wishlist",
+      mobileLabel: "Wishlist",
+      href: "/account/wishlist",
+      icon: Heart,
+    },
+    {
+      name: "Cart",
+      mobileLabel: "Cart",
+      href: "/cart",
+      icon: ShoppingBag,
+    },
+    ...(isCustomer
+      ? [
+          {
+            name: "Profile",
+            mobileLabel: "Profile",
+            href: "/my-profile",
+            icon: null,
+          },
+        ]
+      : []),
+  ];
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const updateScrollDirection = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY <= 8) {
+        setScrollDirection("idle");
+        lastScrollY = currentScrollY;
+      } else if (currentScrollY > lastScrollY + 4) {
+        setScrollDirection("down");
+        lastScrollY = currentScrollY;
+      } else if (currentScrollY < lastScrollY - 4) {
+        setScrollDirection("up");
+        lastScrollY = currentScrollY;
+      }
+
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateScrollDirection);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0  z-50 w-full border-b border-market-ink/15 bg-market-bg text-market-ink transition-colors duration-500">
+    <>
+      <header
+        className={cn(
+          "sticky top-0 z-50 w-full border-b border-market-ink/15 bg-market-bg text-market-ink transition-[color,transform] duration-300 ease-out motion-reduce:transition-none",
+          isTopHidden
+            ? "pointer-events-none"
+            : "",
+        )}
+        style={{ transform: isTopHidden ? "translateY(-100%)" : "translateY(0)" }}
+        aria-hidden={isTopHidden}
+        inert={isTopHidden}
+      >
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10 xl:px-0">
         <Link
           href="/"
@@ -96,68 +180,104 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-1 lg:hidden">
-            <UserProfile showSignInLabel />
-            <Sheet>
-              <SheetTrigger
-                render={
-                  <Button variant="ghost" size="icon" aria-label="Open menu" />
-                }
+            {!user && !isLoading ? (
+              <Button
+                render={<Link href="/login" />}
+                nativeButton={false}
+                className="h-9 rounded-lg bg-market-rail px-3 text-market-rail-ink shadow-sm hover:bg-market-rail/90"
+                aria-label="Login"
               >
-                <Menu className="size-5" aria-hidden="true" />
-              </SheetTrigger>
-
-              <SheetContent side="right" showCloseButton className="overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2 font-heading text-2xl">
-                    <Fish className="size-5 text-market-accent" /> Machh Bazar
-                  </SheetTitle>
-                  <SheetDescription>Navigate the marketplace</SheetDescription>
-                </SheetHeader>
-
-                <div className="flex flex-col gap-1 px-4">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`border-b px-1 py-3 text-sm font-semibold transition-colors hover:text-primary ${
-                        isActive(link.activePath ?? link.href)
-                          ? "text-primary"
-                          : "text-foreground"
-                      }`}
-                    >
-                      {link.name}
-                    </Link>
-                  ))}
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <Link
-                      href="/account/wishlist"
-                      className="inline-flex h-11 items-center justify-center gap-2 border border-border px-3 text-sm font-semibold text-foreground"
-                    >
-                      <Heart className="size-4" aria-hidden="true" /> Wishlist
-                    </Link>
-                    <Link
-                      href="/cart"
-                      className="inline-flex h-11 items-center justify-center gap-2 border border-border px-3 text-sm font-semibold text-foreground"
-                    >
-                      <ShoppingBag className="size-4" aria-hidden="true" /> Cart
-                    </Link>
-                  </div>
-                  <Link
-                    href="/shop"
-                    className="mt-5 inline-flex h-11 items-center justify-center gap-2 bg-market-accent px-4 text-sm font-bold text-market-accent-ink"
-                  >
-                    <ShoppingBag className="size-4" /> Shop now
-                  </Link>
-                  <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm text-muted-foreground">
-                    Change theme
-                    <ModeToggle />
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+                <LogIn data-icon="inline-start" aria-hidden="true" />
+                Login
+              </Button>
+            ) : null}
+            <ModeToggle />
           </div>
         </nav>
       </div>
-    </header>
+      </header>
+
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 px-3 transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none sm:px-6 lg:hidden",
+          isBottomHidden
+            ? "pointer-events-none opacity-0"
+            : "opacity-100",
+        )}
+        style={{
+          paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
+          transform: isBottomHidden ? "translateY(100%)" : "translateY(0)",
+        }}
+        aria-hidden={isBottomHidden}
+        inert={isBottomHidden}
+      >
+        <nav
+          className="mx-auto max-w-2xl overflow-hidden rounded-lg border border-market-ink/20 bg-market-bg/92 text-market-ink shadow-[0_16px_50px_rgb(7_50_44_/_0.22),0_2px_8px_rgb(7_50_44_/_0.12)] ring-1 ring-white/35 backdrop-blur-xl supports-[backdrop-filter]:bg-market-bg/86"
+          aria-label="Mobile navigation"
+        >
+          <div
+            className={cn(
+              "grid h-14 gap-0.5 p-1",
+              isCustomer ? "grid-cols-7" : "grid-cols-6",
+            )}
+          >
+            {mobileNavLinks.map((link) => {
+              const Icon = link.icon;
+              const isProfileLink = link.name === "Profile";
+              const activePath =
+                "activePath" in link && link.activePath
+                  ? link.activePath
+                  : link.href;
+              const active = isActive(activePath);
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={link.name}
+                  className={cn(
+                    "relative flex min-w-0 flex-col items-center justify-center rounded-md px-0.5 text-[8px] font-bold transition-[color,background-color,transform,box-shadow] duration-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-market-accent motion-safe:active:translate-y-px",
+                    active
+                      ? "bg-market-rail text-market-rail-ink shadow-[0_4px_12px_rgb(7_50_44_/_0.18)]"
+                      : "text-market-ink/55 hover:bg-market-ink/7 hover:text-market-ink",
+                  )}
+                >
+                  {isProfileLink ? (
+                    <Avatar className="size-6 border border-market-accent/45">
+                      <AvatarImage
+                        src={user?.image || ""}
+                        alt={user?.name || "User profile"}
+                        referrerPolicy="no-referrer"
+                      />
+                      <AvatarFallback className="bg-market-accent text-[8px] font-bold text-market-accent-ink">
+                        {user?.name
+                          ?.split(" ")
+                          .map((part) => part[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : Icon ? (
+                    <span
+                      className={cn(
+                        "flex size-6 shrink-0 items-center justify-center rounded-md transition-colors",
+                        active && "text-market-accent",
+                      )}
+                    >
+                      <Icon className="size-4" aria-hidden="true" />
+                    </span>
+                  ) : null}
+                  <span className="max-w-full truncate leading-none">
+                    {link.mobileLabel}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+    </>
   );
 }

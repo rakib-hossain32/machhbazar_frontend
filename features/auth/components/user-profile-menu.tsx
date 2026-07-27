@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useLogoutMutation } from "../queries/auth.mutations";
 import { useMeQuery } from "../queries/auth.querie";
@@ -31,7 +32,7 @@ export default function UserProfileMenu({ showSignInLabel = false }: { showSignI
         size={showSignInLabel ? "lg" : "icon"}
         aria-label="Sign in"
         nativeButton={false}
-        className={showSignInLabel ? "h-9 rounded-md border-market-ink/20 bg-transparent px-3 text-current hover:bg-market-ink/8 hover:text-current" : undefined}
+        className={showSignInLabel ? "h-9 rounded-none border-market-ink/20 bg-transparent px-3 text-current hover:bg-market-ink/8 hover:text-current" : undefined}
       >
         <LogIn className="size-4" aria-hidden="true" />
         {showSignInLabel ? <span>Sign in</span> : null}
@@ -74,14 +75,20 @@ export default function UserProfileMenu({ showSignInLabel = false }: { showSignI
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem
-          render={
-            <Link href={user.role === "ADMIN" ? "/dashboard/admin" : "/dashboard"} />
-          }
-          className="gap-2"
-        >
-          <LayoutDashboard className="size-4" /> Dashboard
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          {user.role === "USER" ? (
+            <DropdownMenuItem render={<Link href="/my-profile" />}>
+              <UserRound /> My profile
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            render={
+              <Link href={user.role === "ADMIN" ? "/dashboard/admin" : "/dashboard"} />
+            }
+          >
+            <LayoutDashboard /> Dashboard
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 

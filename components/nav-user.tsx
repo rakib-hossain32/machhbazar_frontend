@@ -50,6 +50,7 @@ export function NavUser({ role, user }: NavUserProps) {
   const name = user.name || "Machh Bazar user";
   const initial = name.charAt(0).toUpperCase();
   const settingsRoute = settingsRoutes[role] ?? "/dashboard/my-profile";
+  const profileRoute = role === "USER" ? "/my-profile" : "/dashboard/my-profile";
 
   return (
     <DropdownMenu>
@@ -97,7 +98,7 @@ export function NavUser({ role, user }: NavUserProps) {
 
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href="/dashboard/my-profile" />}>
+          <DropdownMenuItem render={<Link href={profileRoute} />}>
             <UserIcon />
             Profile
           </DropdownMenuItem>
