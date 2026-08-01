@@ -7,27 +7,39 @@ interface EnvVars {
 }
 
 const loadEnvVars = (): EnvVars => {
-  const requiredVars: (keyof EnvVars)[] = [
-    "APP_NAME",
-    "APP_URL",
-    "API_URL",
-    "BETTER_AUTH_URL",
-    "JWT_ACCESS_SECRET",
+  const publicEnv = {
+    APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+    APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    API_URL: process.env.NEXT_PUBLIC_API_URL,
+    BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+  };
+
+  const missingPublicVars = [
+    ["NEXT_PUBLIC_APP_NAME", publicEnv.APP_NAME],
+    ["NEXT_PUBLIC_APP_URL", publicEnv.APP_URL],
+    ["NEXT_PUBLIC_API_URL", publicEnv.API_URL],
+    ["NEXT_PUBLIC_BETTER_AUTH_URL", publicEnv.BETTER_AUTH_URL],
   ];
 
-  for (const varName of requiredVars) {
-    if (!process.env[`NEXT_PUBLIC_${varName}`]) {
+  for (const [varName, value] of missingPublicVars) {
+    if (!value) {
       console.warn(
-        `Environment variable NEXT_PUBLIC_${varName} is not set. Using default value.`,
+        `Environment variable ${varName} is not set. Using default value.`,
       );
     }
   }
 
+  if (typeof window === "undefined" && !process.env.JWT_ACCESS_SECRET) {
+    console.warn(
+      "Server-only environment variable JWT_ACCESS_SECRET is not set.",
+    );
+  }
+
   return {
-    APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || "App Name",
-    APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
-    BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000",
+    APP_NAME: publicEnv.APP_NAME || "App Name",
+    APP_URL: publicEnv.APP_URL || "http://localhost:3000",
+    API_URL: publicEnv.API_URL || "http://localhost:5000/api",
+    BETTER_AUTH_URL: publicEnv.BETTER_AUTH_URL || "http://localhost:5000",
     JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || "",
   };
 };

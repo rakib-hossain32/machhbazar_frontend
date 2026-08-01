@@ -8,11 +8,20 @@ export async function getNewTokensWithRefreshToken(
   refreshToken: string,
 ): Promise<boolean> {
   try {
-    const res = await fetch(`${envVars.API_URL}/auth/refresh-token`, {
+    const cookieStore = await cookies();
+    const sessionToken =
+      cookieStore.get("better-auth.session_token")?.value ??
+      cookieStore.get("__Secure-better-auth.session_token")?.value;
+
+    if (!sessionToken) {
+      return false;
+    }
+
+    const res = await fetch(`${envVars.API_URL}/v1/auth/refresh-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Cookie: `refreshToken=${refreshToken}`,
+        Cookie: `refreshToken=${refreshToken}; better-auth.session_token=${sessionToken}`,
       },
     });
 
@@ -22,7 +31,7 @@ export async function getNewTokensWithRefreshToken(
 
     const { data } = await res.json();
 
-    const { accessToken, refreshToken: newRefreshToken, token } = data;
+    const { accessToken, refreshToken: newRefreshToken } = data;
 
     if (accessToken) {
       await setTokenInCookies("accessToken", accessToken);
@@ -30,10 +39,6 @@ export async function getNewTokensWithRefreshToken(
 
     if (newRefreshToken) {
       await setTokenInCookies("refreshToken", newRefreshToken);
-    }
-
-    if (token) {
-      await setTokenInCookies("better-auth.session_token", token, 24 * 60 * 60); // 1 day in seconds
     }
 
     return true;
@@ -62,7 +67,7 @@ export async function setTokens(tokens: {
     await setTokenInCookies(
       "better-auth.session_token",
       tokens.token,
-      24 * 60 * 60,
+      7 * 24 * 60 * 60,
     );
   }
 
@@ -73,9 +78,11 @@ export async function getSession() {
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
-    const sessionToken = cookieStore.get("better-auth.session_token")?.value;
+    const sessionToken =
+      cookieStore.get("better-auth.session_token")?.value ??
+      cookieStore.get("__Secure-better-auth.session_token")?.value;
 
-    if (!accessToken) {
+    if (!accessToken || !sessionToken) {
       return null;
     }
 

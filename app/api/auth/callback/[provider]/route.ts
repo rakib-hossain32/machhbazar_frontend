@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SUPPORTED_PROVIDERS = [
-  "google",
-  "github",
-  "facebook",
-  "twitter",
-  "discord",
-];
+const SUPPORTED_PROVIDERS = ["google"];
 
 export async function GET(
   request: NextRequest,
@@ -22,53 +16,15 @@ export async function GET(
 
   const { searchParams } = request.nextUrl;
 
-  const accessToken = searchParams.get("accessToken");
-  const refreshToken = searchParams.get("refreshToken");
-  const sessionToken = searchParams.get("token");
   const redirectPath = searchParams.get("redirect") || "/dashboard";
+  const appUrl = new URL(request.url);
+  const requestedRedirectUrl = new URL(redirectPath, appUrl);
+  const finalRedirectUrl =
+    requestedRedirectUrl.origin === appUrl.origin
+      ? requestedRedirectUrl
+      : new URL("/dashboard", appUrl);
 
-  // Prevent open-redirect attacks
-  const isValidRedirectPath =
-    redirectPath.startsWith("/") && !redirectPath.startsWith("//");
-  const finalRedirect = isValidRedirectPath ? redirectPath : "/dashboard";
-
-  if (!accessToken || !refreshToken) {
-    return NextResponse.redirect(
-      new URL("/login?error=oauth_failed", request.url),
-    );
-  }
-
-  const isProduction = process.env.NODE_ENV === "production";
-  const ONE_DAY_SECONDS = 60 * 60 * 24;
-  const SEVEN_DAYS_SECONDS = ONE_DAY_SECONDS * 7;
-
-  const response = NextResponse.redirect(new URL(finalRedirect, request.url));
-
-  response.cookies.set("accessToken", accessToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    path: "/",
-    maxAge: ONE_DAY_SECONDS,
-  });
-
-  response.cookies.set("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    path: "/",
-    maxAge: SEVEN_DAYS_SECONDS,
-  });
-
-  if (sessionToken) {
-    response.cookies.set("better-auth.session_token", sessionToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      maxAge: ONE_DAY_SECONDS,
-    });
-  }
-
-  return response;
+  // OAuth tokens are set as HttpOnly cookies by the backend. Never accept
+  // credentials from query parameters, where logs and browser history expose them.
+  return NextResponse.redirect(finalRedirectUrl);
 }

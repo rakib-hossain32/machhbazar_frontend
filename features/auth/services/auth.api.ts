@@ -1,6 +1,7 @@
 "use server";
 
 import { deleteCookie } from "@/lib/utils/cookie";
+import { setTokens } from "./auth.service";
 import type { ILoginResponse, IUserResponse } from "../types/auth.type";
 import { api } from "@/lib/axios/http";
 
@@ -9,7 +10,15 @@ export async function loginRequest(payload: {
   password: string;
 }) {
   const res = await api.post<ILoginResponse>("/v1/auth/login", payload);
-  return res.data;
+  const data = res.data;
+
+  await setTokens({
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    token: data.token,
+  });
+
+  return { user: data.user };
 }
 
 export async function registerRequest(payload: {
@@ -67,7 +76,9 @@ export async function logoutRequest() {
   await deleteCookie("accessToken");
   await deleteCookie("refreshToken");
   await deleteCookie("better-auth.session_token");
+  await deleteCookie("__Secure-better-auth.session_token");
   await deleteCookie("better-auth.session_data");
+  await deleteCookie("__Secure-better-auth.session_data");
   
   return res.data;
 }

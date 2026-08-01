@@ -1,6 +1,5 @@
 "use client";
 
-import { setTokens } from "@/features/auth/services/auth.service";
 import {
   forgetPasswordRequest,
   loginRequest,
@@ -69,17 +68,6 @@ export const useLoginMutation = () => {
       mutationFn: loginRequest,
       onSuccess: async (data, variables) => {
         toast.success("Login successful!");
-
-                try {
-          await setTokens({
-            accessToken: data?.accessToken,
-            refreshToken: data?.refreshToken,
-            token: data?.token,
-          });
-        } catch (err) {
-          console.error("Failed to set tokens in cookies:", err);
-        }
-        
 
         await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.me });
         await new Promise((resolve) => setTimeout(resolve, 100));
