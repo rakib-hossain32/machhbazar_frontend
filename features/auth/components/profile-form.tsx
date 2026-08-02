@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useUpdateProfileMutation } from "@/features/auth/queries/auth.mutations";
 import {
+  deleteUnattachedAvatar,
+  uploadAvatar,
+} from "@/features/auth/services/avatar-upload";
+import {
   profileZodSchema,
   type IProfilePayload,
 } from "@/features/auth/validators/profile.validator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Loader2, Lock } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import ChangePasswordDialog from "./change-password-dialog";
@@ -32,42 +36,86 @@ interface ProfileFormProps {
 export default function ProfileForm({ user }: ProfileFormProps) {
   const mutation = useUpdateProfileMutation();
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [currentImage, setCurrentImage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<IProfilePayload>({
     mode: "onTouched",
     resolver: zodResolver(profileZodSchema),
     defaultValues: {
       name: user.name || "",
-      image: user.image || "",
     },
   });
 
-  const imageValue = useWatch({ control: form.control, name: "image" });
   const nameValue = useWatch({ control: form.control, name: "name" });
+  const isBusy = isUploading || mutation.isPending;
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
+
+  const clearPendingAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+  };
 
   async function onSubmit(values: IProfilePayload) {
+    let uploadedAvatar: Awaited<ReturnType<typeof uploadAvatar>> | undefined;
+
     try {
-      await mutation.mutateAsync(values);
-    } catch {
-      // Error handling is done in the mutation's onError callback
+      if (avatarFile) {
+        setIsUploading(true);
+        uploadedAvatar = await uploadAvatar(avatarFile);
+      }
+
+      await mutation.mutateAsync({
+        name: values.name,
+        ...(uploadedAvatar
+          ? { imagePublicId: uploadedAvatar.publicId }
+          : {}),
+      });
+
+      if (uploadedAvatar) {
+        setCurrentImage(uploadedAvatar.url);
+        clearPendingAvatar();
+      }
+    } catch (error) {
+      if (uploadedAvatar) {
+        await deleteUnattachedAvatar(uploadedAvatar.publicId).catch(
+          () => undefined,
+        );
+      } else if (avatarFile) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to upload image",
+        );
+      }
+    } finally {
+      setIsUploading(false);
     }
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image size must be less than 2MB");
+    if (file.size <= 0 || file.size > 2 * 1024 * 1024) {
+      toast.error("Image size must be between 1 byte and 2 MB");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      form.setValue("image", reader.result as string);
-      toast.info("Image loaded. Click 'Save Changes' to update.");
-    };
-    reader.readAsDataURL(file);
+    if (!(["image/jpeg", "image/png", "image/webp"] as string[]).includes(file.type)) {
+      toast.error("Only JPG, PNG, and WebP images are allowed");
+      return;
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    toast.info("Image ready. Click 'Save Changes' to upload it.");
   };
 
   return (
@@ -88,7 +136,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           <div className="relative">
             <Avatar className="h-24 w-24">
               <AvatarImage
-                src={imageValue}
+                src={avatarPreview || currentImage || user.image || ""}
                 alt={nameValue}
                 className="object-cover"
                 referrerPolicy="no-referrer"
@@ -105,17 +153,17 @@ export default function ProfileForm({ user }: ProfileFormProps) {
               <input
                 id="avatar-upload"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={handleImageUpload}
-                disabled={mutation.isPending}
+                disabled={isBusy}
               />
             </label>
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium">Profile Picture</p>
             <p className="text-xs text-muted-foreground">
-              JPG, PNG or GIF. Max size 2MB.
+              JPG, PNG or WebP. Max size 2 MB.
             </p>
           </div>
         </div>
@@ -125,7 +173,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           name="name"
           label="Full Name"
           placeholder="Enter your full name"
-          disabled={mutation.isPending}
+          disabled={isBusy}
         />
 
         {/* Email Field (read-only) */}
@@ -167,7 +215,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
               variant="outline"
               size="sm"
               onClick={() => setShowPasswordDialog(true)}
-              disabled={mutation.isPending}
+              disabled={isBusy}
             >
               Change Password
             </Button>
@@ -179,16 +227,18 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           <Button
             type="button"
             variant="outline"
-            disabled={mutation.isPending}
+            disabled={isBusy}
             onClick={() => {
-              form.reset({ name: user.name || "", image: user.image || "" });
+              clearPendingAvatar();
+              setCurrentImage("");
+              form.reset({ name: user.name || "" });
               toast.info("Changes discarded");
             }}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending && (
+          <Button type="submit" disabled={isBusy}>
+            {isBusy && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             Save Changes

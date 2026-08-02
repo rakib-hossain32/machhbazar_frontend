@@ -65,7 +65,10 @@ export async function ChangePassword(payload: {
   return res.data;
 }
 
-export async function updateProfile(payload: { name: string; image?: string }) {
+export async function updateProfile(payload: {
+  name: string;
+  imagePublicId?: string;
+}) {
   const res = await api.patch("/v1/auth/profile", payload);
   return res.data;
 }

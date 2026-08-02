@@ -7,8 +7,11 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import {
+  uploadMedia,
+  type UploadPurpose,
+} from "@/features/media/services/cloudinary-upload";
 import { type FileWithPreview, useFileUpload } from "@/hooks/use-file-upload";
-import { api } from "@/lib/axios/http";
 import { cn } from "@/lib/utils";
 import {
   closestCenter,
@@ -81,61 +84,23 @@ async function uploadToCloudinaryViaPresign(
   file: File,
   keyPrefix = "products",
 ): Promise<{ key: string; publicUrl: string; secureUrl: string }> {
-  const resourceType = file.type.startsWith("image/")
-    ? "image"
-    : file.type.startsWith("video/")
-    ? "video"
-    : file.type === "application/pdf"
-    ? "raw"
-    : "auto";
+  const prefix = keyPrefix.toLowerCase();
+  const purpose: UploadPurpose = prefix.includes("review")
+    ? "review"
+    : prefix.includes("trace")
+      ? "trace"
+      : prefix.includes("kyc")
+        ? "kyc"
+        : prefix.includes("dispute")
+          ? "dispute"
+          : "product";
+  const uploaded = await uploadMedia(file, purpose);
 
-  const res = await api.post<{ data: Record<string, unknown> }>(
-    "/v1/images/upload/presign",
-    {
-      folder: keyPrefix,
-      resourceType,
-    },
-  );
-  const payload = (res.data?.data as Record<string, unknown>) || {};
-
-  const form = new FormData();
-
-  if (payload.unsigned && payload.upload_preset) {
-    form.append("upload_preset", payload.upload_preset as string);
-    if (payload.folder) form.append("folder", payload.folder as string);
-    form.append("file", file);
-    const { data: upJson } = await api.post<Record<string, unknown>>(
-      payload.uploadUrl as string,
-      form,
-    );
-    return {
-      key: upJson.public_id as string,
-      publicUrl: upJson.secure_url as string,
-      secureUrl: upJson.secure_url as string,
-    };
-  }
-
-  if (!payload.unsigned) {
-    if (payload.api_key) form.append("api_key", payload.api_key as string);
-    if (payload.timestamp) form.append("timestamp", String(payload.timestamp));
-    if (payload.signature) form.append("signature", payload.signature as string);
-    if (payload.publicId) form.append("public_id", payload.publicId as string);
-    if (payload.folder) form.append("folder", payload.folder as string);
-    if (payload.resourceType) form.append("resource_type", payload.resourceType as string);
-    form.append("file", file);
-
-    const { data: upJson } = await api.post<Record<string, unknown>>(
-      payload.uploadUrl as string,
-      form,
-    );
-    return {
-      key: upJson.public_id as string,
-      publicUrl: upJson.url as string,
-      secureUrl: upJson.secure_url as string,
-    };
-  }
-
-  throw new Error("Invalid presign response");
+  return {
+    key: uploaded.publicId,
+    publicUrl: uploaded.url,
+    secureUrl: uploaded.url,
+  };
 }
 
 function SortableMediaItem({
