@@ -32,7 +32,7 @@ export default function Navbar() {
   const [scrollDirection, setScrollDirection] = useState<
     "idle" | "up" | "down"
   >("idle");
-  const isCustomer = user?.role === "USER";
+  const isCustomer = user?.role === "CUSTOMER";
   const isTopHidden = scrollDirection === "down";
   const isBottomHidden = scrollDirection === "up";
   const isActive = (href: string) =>

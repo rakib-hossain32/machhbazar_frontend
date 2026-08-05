@@ -10,6 +10,7 @@ import {
   verifyEmailRequest,
 } from "@/features/auth/services/auth.api";
 import { envVars } from "@/lib/env";
+import { getDefaultDashboardRoute } from "@/lib/utils/auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -72,7 +73,7 @@ export const useLoginMutation = () => {
         await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.me });
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        const defaultRoute = data?.user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard";
+        const defaultRoute = getDefaultDashboardRoute(data?.user?.role);
         navigate(variables?.redirectPath || defaultRoute);
       },
       onError: (error: unknown, variables) => {
@@ -174,7 +175,7 @@ export const useSocialLoginMutation = () => {
     mutationKey: AUTH_MUTATION_KEYS.socialLogin,
     mutationFn: async (provider) => {
       const payloadRes = await fetch(
-        `${envVars.API_URL}/v1/auth/login/${provider}?redirect=/dashboard`,
+        `${envVars.API_URL}/v1/auth/login/${provider}?redirect=/my-profile`,
       );
       if (!payloadRes.ok) throw new Error("Failed to initiate social login.");
       const { data: payload } = await payloadRes.json();

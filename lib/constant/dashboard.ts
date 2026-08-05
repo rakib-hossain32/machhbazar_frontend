@@ -10,34 +10,6 @@ const item = (
   exact = false,
 ) => ({ title, url, icon, exact });
 
-const createCustomerMenu = (overviewUrl: string): DashboardSidebarMenuGroup[] => [
-  {
-    label: "Account",
-    items: [
-      item("Overview", overviewUrl, "LayoutDashboard", true),
-      item("Orders", "/dashboard/account/orders", "ShoppingCart"),
-      item("Wishlist", "/dashboard/account/wishlist", "Heart"),
-      item("Addresses", "/dashboard/account/addresses", "MapPin"),
-    ],
-  },
-  {
-    label: "Support",
-    items: [
-      item("Refunds", "/dashboard/account/refunds", "RotateCcw"),
-      item("Disputes", "/dashboard/account/disputes", "MessageSquareWarning"),
-    ],
-  },
-  {
-    label: "Preferences",
-    items: [
-      item("Notifications", "/dashboard/account/notifications", "Bell"),
-      item("Settings", "/dashboard/account/settings", "Settings"),
-    ],
-  },
-];
-
-export const CUSTOMER = createCustomerMenu("/dashboard/account");
-
 export const SELLER: DashboardSidebarMenuGroup[] = [
   {
     label: "Seller",
@@ -62,24 +34,6 @@ export const SELLER: DashboardSidebarMenuGroup[] = [
       item("Analytics", "/dashboard/seller/analytics", "BarChart3"),
       item("Payouts", "/dashboard/seller/payouts", "Wallet"),
       item("Settings", "/dashboard/seller/settings", "Settings"),
-    ],
-  },
-];
-
-export const INSPECTOR: DashboardSidebarMenuGroup[] = [
-  {
-    label: "Inspection",
-    items: [
-      item("Assigned Checks", "/dashboard/inspector", "ClipboardCheck", true),
-    ],
-  },
-];
-
-export const RIDER: DashboardSidebarMenuGroup[] = [
-  {
-    label: "Delivery",
-    items: [
-      item("Assigned Deliveries", "/dashboard/rider", "Truck", true),
     ],
   },
 ];
@@ -127,13 +81,9 @@ export const ADMIN: DashboardSidebarMenuGroup[] = [
   },
 ];
 
-export const USER = createCustomerMenu("/dashboard");
-
 export const sidebar = {
   ADMIN,
-  CUSTOMER,
-  USER,
   SELLER,
-  INSPECTOR,
-  RIDER,
 };
+
+export type DashboardRole = keyof typeof sidebar;

@@ -1,4 +1,16 @@
-export type UserRole = "ADMIN" | "USER";
+export type UserRole =
+  | "ADMIN"
+  | "CUSTOMER"
+  | "SELLER";
+
+export type RouteOwner =
+  | "ADMIN"
+  | "CUSTOMER"
+  | "SELLER"
+  | "COMMON"
+  | "DISABLED";
+
+export type NormalizedUserRole = UserRole;
 
 export const authRoutes = [
   "/login",
@@ -8,53 +20,41 @@ export const authRoutes = [
   "/verify-email",
 ];
 
-export const isAuthRoute = (pathname: string) => {
-  return authRoutes.some((router: string) => router === pathname);
-};
+export const isAuthRoute = (pathname: string) =>
+  authRoutes.includes(pathname);
 
-export type RouteConfig = {
-  exact: string[];
-  pattern: RegExp[];
-};
+const dashboardOwners: Array<{ owner: RouteOwner; pattern: RegExp }> = [
+  { owner: "ADMIN", pattern: /^\/dashboard\/admin(?:\/.*)?$/ },
+  { owner: "SELLER", pattern: /^\/dashboard\/seller(?:\/.*)?$/ },
+  { owner: "COMMON", pattern: /^\/dashboard(?:\/my-profile)?\/?$/ },
+  { owner: "DISABLED", pattern: /^\/dashboard(?:\/.*)?$/ },
+];
 
-export const commonProtectedRoutes: RouteConfig = {
-  exact: ["/dashboard/my-profile"],
-  pattern: [/^\/dashboard(?!\/admin)(\/.*)?$/],
-};
-
-export const adminProtectedRoutes: RouteConfig = {
-  pattern: [/^\/dashboard\/admin/],
-  exact: [],
-};
-
-export const isRouteMatches = (pathname: string, routes: RouteConfig) => {
-  if (routes.exact.includes(pathname)) {
-    return true;
-  }
-  return routes.pattern.some((pattern: RegExp) => pattern.test(pathname));
-};
-
-export const getRouteOwner = (pathname: string): "ADMIN" | "COMMON" | null => {
-  if (isRouteMatches(pathname, adminProtectedRoutes)) {
-    return "ADMIN";
+export const normalizeUserRole = (role?: string | null): NormalizedUserRole => {
+  if (
+    role === "ADMIN" ||
+    role === "CUSTOMER" ||
+    role === "SELLER"
+  ) {
+    return role;
   }
 
-  if (isRouteMatches(pathname, commonProtectedRoutes)) {
-    return "COMMON";
-  }
-
-  return null;
+  return "CUSTOMER";
 };
 
-export const getDefaultDashboardRoute = (role: UserRole) => {
-  if (role === "ADMIN") {
-    return "/dashboard/admin";
-  }
-  if (role === "USER") {
-    return "/dashboard";
-  }
+export const getRouteOwner = (pathname: string): RouteOwner | null =>
+  dashboardOwners.find(({ pattern }) => pattern.test(pathname))?.owner ?? null;
 
-  return "/";
+export const getDefaultDashboardRoute = (role: UserRole | string) => {
+  const normalizedRole = normalizeUserRole(role);
+
+  const routes: Record<NormalizedUserRole, string> = {
+    ADMIN: "/dashboard/admin",
+    CUSTOMER: "/my-profile",
+    SELLER: "/dashboard/seller",
+  };
+
+  return routes[normalizedRole];
 };
 
 export const isValidRedirectForRole = (
@@ -63,13 +63,8 @@ export const isValidRedirectForRole = (
 ) => {
   const routeOwner = getRouteOwner(redirectPath);
 
-  if (routeOwner === null || routeOwner === "COMMON") {
-    return true;
-  }
+  if (routeOwner === null || routeOwner === "COMMON") return true;
+  if (routeOwner === "DISABLED") return false;
 
-  if (routeOwner === role) {
-    return true;
-  }
-
-  return false;
+  return routeOwner === normalizeUserRole(role);
 };

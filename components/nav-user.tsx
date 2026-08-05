@@ -16,7 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLogoutMutation } from "@/features/auth/queries/auth.mutations";
-import type { sidebar } from "@/lib/constant/dashboard";
+import type { DashboardRole } from "@/lib/constant/dashboard";
+import type { UserRole } from "@/lib/utils/auth";
 import {
   ChevronsUpDownIcon,
   LogOutIcon,
@@ -30,27 +31,25 @@ export type AppUser = {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  role?: string;
+  role?: UserRole;
 };
 
 type NavUserProps = {
-  role: keyof typeof sidebar;
+  role: DashboardRole;
   user: AppUser;
 };
 
-const settingsRoutes: Partial<Record<keyof typeof sidebar, string>> = {
+const settingsRoutes: Record<DashboardRole, string> = {
   ADMIN: "/dashboard/admin/configuration",
-  CUSTOMER: "/dashboard/account/settings",
   SELLER: "/dashboard/seller/settings",
-  USER: "/dashboard/account/settings",
 };
 
 export function NavUser({ role, user }: NavUserProps) {
   const { mutate: logout, isPending } = useLogoutMutation();
-  const name = user.name || "Machh Bazar user";
+  const name = user.name || "Machh Bazar member";
   const initial = name.charAt(0).toUpperCase();
-  const settingsRoute = settingsRoutes[role] ?? "/dashboard/my-profile";
-  const profileRoute = role === "USER" ? "/my-profile" : "/dashboard/my-profile";
+  const settingsRoute = settingsRoutes[role];
+  const profileRoute = "/dashboard/my-profile";
 
   return (
     <DropdownMenu>

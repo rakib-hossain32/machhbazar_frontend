@@ -43,6 +43,11 @@ export default function UserProfileMenu({ showSignInLabel = false }: { showSignI
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
+  const isCustomer = user.role === "CUSTOMER";
+  const dashboardRoute = {
+    ADMIN: "/dashboard/admin",
+    SELLER: "/dashboard/seller",
+  }[user.role];
 
   return (
     <DropdownMenu>
@@ -76,18 +81,16 @@ export default function UserProfileMenu({ showSignInLabel = false }: { showSignI
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          {user.role === "USER" ? (
+          {isCustomer ? (
             <DropdownMenuItem render={<Link href="/my-profile" />}>
               <UserRound /> My profile
             </DropdownMenuItem>
           ) : null}
-          <DropdownMenuItem
-            render={
-              <Link href={user.role === "ADMIN" ? "/dashboard/admin" : "/dashboard"} />
-            }
-          >
-            <LayoutDashboard /> Dashboard
-          </DropdownMenuItem>
+          {dashboardRoute ? (
+            <DropdownMenuItem render={<Link href={dashboardRoute} />}>
+              <LayoutDashboard /> Dashboard
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />

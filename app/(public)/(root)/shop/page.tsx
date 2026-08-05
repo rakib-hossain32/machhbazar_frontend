@@ -21,7 +21,7 @@ export default function ShopPage() {
       />
       <Suspense
         fallback={
-          <div className="mx-auto min-h-[700px] max-w-7xl animate-pulse bg-muted/40" />
+          <div className="mx-auto min-h-175 max-w-7xl animate-pulse bg-muted/40" />
         }
       >
         <ShopCatalog />

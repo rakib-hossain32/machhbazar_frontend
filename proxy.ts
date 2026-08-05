@@ -7,6 +7,7 @@ import {
   getDefaultDashboardRoute,
   getRouteOwner,
   isAuthRoute,
+  normalizeUserRole,
   UserRole,
 } from "@/lib/utils/auth";
 import { jwtUtils } from "@/lib/utils/jwt";
@@ -48,7 +49,7 @@ export async function proxy(request: NextRequest) {
       userRole = (decodedAccessToken.role as UserRole) || null;
     }
 
-    const normalizedUserRole = userRole === "ADMIN" ? "ADMIN" : "USER";
+    const normalizedUserRole = normalizeUserRole(userRole);
     const routerOwner = getRouteOwner(pathname);
     const isAuth = isAuthRoute(pathname);
 
@@ -118,7 +119,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (routerOwner === null || routerOwner === "COMMON") {
+    if (routerOwner === null) {
       return NextResponse.next();
     }
 
@@ -145,12 +146,14 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    const routeOwnerNormalized = routerOwner === "ADMIN" ? "ADMIN" : "USER";
+    if (routerOwner === "COMMON") {
+      return NextResponse.next();
+    }
 
-    if (routeOwnerNormalized === "ADMIN" && normalizedUserRole !== "ADMIN") {
+    if (routerOwner === "DISABLED" || routerOwner !== normalizedUserRole) {
       return NextResponse.redirect(
         new URL(
-          getDefaultDashboardRoute(normalizedUserRole as UserRole),
+          getDefaultDashboardRoute(normalizedUserRole),
           request.url,
         ),
       );

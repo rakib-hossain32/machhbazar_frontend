@@ -16,13 +16,13 @@ export async function GET(
 
   const { searchParams } = request.nextUrl;
 
-  const redirectPath = searchParams.get("redirect") || "/dashboard";
+  const redirectPath = searchParams.get("redirect") || "/my-profile";
   const appUrl = new URL(request.url);
   const requestedRedirectUrl = new URL(redirectPath, appUrl);
   const finalRedirectUrl =
     requestedRedirectUrl.origin === appUrl.origin
       ? requestedRedirectUrl
-      : new URL("/dashboard", appUrl);
+      : new URL("/my-profile", appUrl);
 
   // OAuth tokens are set as HttpOnly cookies by the backend. Never accept
   // credentials from query parameters, where logs and browser history expose them.

@@ -1,5 +1,0 @@
-import { DashboardRoutePage } from "@/components/dashboard/dashboard-route-page";
-
-export default function NotificationsPage() {
-  return <DashboardRoutePage title="Notifications" />;
-}
